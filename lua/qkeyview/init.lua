@@ -79,12 +79,12 @@ local function create_window()
     -- Create window
     win_id = vim.api.nvim_open_win(buf_id, true, opts)
     
-    -- Set buffer options
+    -- Set buffer content first
+    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, create_content())
+    
+    -- Then set buffer options
     vim.api.nvim_buf_set_option(buf_id, 'modifiable', false)
     vim.api.nvim_buf_set_option(buf_id, 'buftype', 'nofile')
-    
-    -- Set buffer content
-    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, create_content())
     
     -- Set buffer keymaps
     vim.api.nvim_buf_set_keymap(buf_id, 'n', 'q', ':lua require("qkeyviewer").close()<CR>', {
