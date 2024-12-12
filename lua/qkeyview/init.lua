@@ -27,7 +27,11 @@ local function get_keymaps()
                 mode = mode,
                 lhs = map.lhs,
                 rhs = map.rhs or "",
-                desc = map.desc or ""
+                desc = map.desc or "",
+                silent = map.silent,
+                noremap = map.noremap,
+                expr = map.expr,
+                buffer = map.buffer,
             })
         end
     end
@@ -72,10 +76,15 @@ local function telescope_keymaps(opts)
     for _, map in ipairs(keymaps) do
         local desc = map.desc ~= "" and map.desc or map.rhs
         table.insert(keymap_entries, {
-            display = string.format("[%s] %s →→→ %s", map.mode, map.lhs, desc),
+            display = string.format("%-6s %-30s %s", "[" .. map.mode .. "]", map.lhs, desc),
             mode = map.mode,
             lhs = map.lhs,
-            desc = desc
+            rhs = map.rhs or "",
+            desc = desc,
+            silent = map.silent and "yes" or "no",
+            noremap = map.noremap and "yes" or "no",
+            expr = map.expr and "yes" or "no",
+            buffer = map.buffer or "global"
         })
     end
     
@@ -87,11 +96,39 @@ local function telescope_keymaps(opts)
                 return {
                     value = entry,
                     display = entry.display,
-                    ordinal = entry.display,
+                    ordinal = string.format("%s %s %s", entry.mode, entry.lhs, entry.desc),
+                    preview_command = function(entry, bufnr)
+                        local lines = {
+                            "Details for Keymap:",
+                            string.rep("─", 50),
+                            "",
+                            "Mode:      " .. entry.value.mode,
+                            "Key:       " .. entry.value.lhs,
+                            "Action:    " .. entry.value.rhs,
+                            "Description: " .. entry.value.desc,
+                            "",
+                            "Properties:",
+                            string.rep("─", 50),
+                            "",
+                            "Silent:    " .. entry.value.silent,
+                            "NoRemap:   " .. entry.value.noremap,
+                            "Expr:      " .. entry.value.expr,
+                            "Scope:     " .. entry.value.buffer,
+                        }
+                        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+                    end,
                 }
             end,
         },
         sorter = conf.generic_sorter(opts),
+        previewer = require("telescope.previewers").new_buffer_previewer({
+            define_preview = function(self, entry, status)
+                entry.preview_command(entry, self.state.bufnr)
+                -- Set some buffer options for the preview
+                vim.api.nvim_buf_set_option(self.state.bufnr, 'filetype', 'markdown')
+                vim.api.nvim_buf_set_option(self.state.bufnr, 'buftype', 'nofile')
+            end
+        }),
         attach_mappings = function(prompt_bufnr, map)
             actions.select_default:replace(function()
                 actions.close(prompt_bufnr)
@@ -101,6 +138,11 @@ local function telescope_keymaps(opts)
             end)
             return true
         end,
+        layout_config = {
+            width = 0.9,
+            height = 0.8,
+            preview_width = 0.5
+        }
     }):find()
 end
 
