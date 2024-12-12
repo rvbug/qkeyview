@@ -31,7 +31,6 @@ local function get_keymaps()
             })
         end
     end
-    
     return keymaps
 end
 
@@ -64,6 +63,16 @@ local function create_window()
     -- Create buffer
     buf_id = vim.api.nvim_create_buf(false, true)
     
+    -- Set buffer options first
+    vim.api.nvim_buf_set_option(buf_id, 'buftype', 'nofile')
+    vim.api.nvim_buf_set_option(buf_id, 'modifiable', true)
+    
+    -- Set buffer content
+    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, create_content())
+    
+    -- Now make it non-modifiable
+    vim.api.nvim_buf_set_option(buf_id, 'modifiable', false)
+    
     -- Window options
     local opts = {
         relative = "editor",
@@ -79,18 +88,14 @@ local function create_window()
     -- Create window
     win_id = vim.api.nvim_open_win(buf_id, true, opts)
     
-    -- Set buffer content first
-    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, create_content())
-    
-    -- Then set buffer options
-    vim.api.nvim_buf_set_option(buf_id, 'modifiable', false)
-    vim.api.nvim_buf_set_option(buf_id, 'buftype', 'nofile')
-    
     -- Set buffer keymaps
-    vim.api.nvim_buf_set_keymap(buf_id, 'n', 'q', ':lua require("qkeyviewer").close()<CR>', {
+    vim.api.nvim_buf_set_keymap(buf_id, 'n', 'q', '', {
         noremap = true,
         silent = true,
-        nowait = true
+        nowait = true,
+        callback = function()
+            M.close()
+        end
     })
     
     -- Set buffer local options
@@ -111,12 +116,12 @@ end
 function M.close()
     if win_id and vim.api.nvim_win_is_valid(win_id) then
         vim.api.nvim_win_close(win_id, true)
-        win_id = nil
     end
     if buf_id and vim.api.nvim_buf_is_valid(buf_id) then
         vim.api.nvim_buf_delete(buf_id, { force = true })
-        buf_id = nil
     end
+    win_id = nil
+    buf_id = nil
 end
 
 -- Setup function
