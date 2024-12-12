@@ -38,13 +38,9 @@ end
 local function create_content()
     local keymaps = get_keymaps()
     local content = {}
-    local title = "Keymap Viewer"
-    local width = vim.api.nvim_win_get_width(0)
-    local pad_width = math.floor((width - #title) / 2)
     
-    -- Center the title
-    table.insert(content, string.rep(" ", pad_width) .. title)
-    table.insert(content, string.rep("─", width))
+    table.insert(content, "Keymaps:")
+    table.insert(content, "--------")
     table.insert(content, "")
     
     for _, map in ipairs(keymaps) do
@@ -56,55 +52,7 @@ local function create_content()
     return content
 end
 
--- Telescope integration
-local function telescope_keymaps(opts)
-    local pickers = require("telescope.pickers")
-    local finders = require("telescope.finders")
-    local conf = require("telescope.config").values
-    local actions = require("telescope.actions")
-    local action_state = require("telescope.actions.state")
-    
-    opts = opts or {}
-    
-    local keymaps = get_keymaps()
-    local keymap_entries = {}
-    
-    for _, map in ipairs(keymaps) do
-        local desc = map.desc ~= "" and map.desc or map.rhs
-        table.insert(keymap_entries, {
-            display = string.format("[%s] %s →→→ %s", map.mode, map.lhs, desc),
-            mode = map.mode,
-            lhs = map.lhs,
-            desc = desc
-        })
-    end
-    
-    pickers.new(opts, {
-        prompt_title = "Keymaps",
-        finder = finders.new_table {
-            results = keymap_entries,
-            entry_maker = function(entry)
-                return {
-                    value = entry,
-                    display = entry.display,
-                    ordinal = entry.display,
-                }
-            end,
-        },
-        sorter = conf.generic_sorter(opts),
-        attach_mappings = function(prompt_bufnr, map)
-            actions.select_default:replace(function()
-                actions.close(prompt_bufnr)
-                local selection = action_state.get_selected_entry()
-                -- You can add custom action here when a keymap is selected
-                print(selection.value.display)
-            end)
-            return true
-        end,
-    }):find()
-end
-
--- Function to create the floating window (legacy version)
+-- Function to create the floating window
 local function create_window()
     -- Calculate window size
     local width = math.floor(vim.o.columns * M.config.window.width)
@@ -156,19 +104,12 @@ local function create_window()
     vim.api.nvim_win_set_option(win_id, 'winhl', 'Normal:Normal,FloatBorder:FloatBorder')
 end
 
--- Function to open the viewer (now using Telescope)
+-- Function to open the viewer
 function M.open()
-    -- Check if telescope is available
-    local has_telescope, _ = pcall(require, 'telescope')
-    if has_telescope then
-        telescope_keymaps()
-    else
-        -- Fallback to legacy floating window
-        if win_id and vim.api.nvim_win_is_valid(win_id) then
-            return
-        end
-        create_window()
+    if win_id and vim.api.nvim_win_is_valid(win_id) then
+        return
     end
+    create_window()
 end
 
 -- Function to close the viewer
